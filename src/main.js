@@ -7,6 +7,7 @@ import {
   wallLayout,
 } from './game/mapLayout.js';
 import { getMovementInput, rotateMovement } from './game/movement.js';
+import { clampLookDelta } from './game/lookControls.js';
 import { playShotSound } from './game/shotAudio.js';
 import {
   getPlayerSkin,
@@ -532,6 +533,7 @@ const impactLifetime = 1.1;
 
 const clock = new THREE.Clock();
 const pressedKeys = new Set();
+const LOCAL_POSITION_RECONCILIATION_DISTANCE_SQUARED = 16;
 const player = {
   yaw: 0,
   pitch: 0,
@@ -540,6 +542,7 @@ const player = {
 };
 let fallbackControls = false;
 let previousPointerPosition = null;
+let ignoreNextMouseMove = false;
 const mouseSensitivity = 0.002;
 let physics;
 let physicsPromise;
@@ -552,6 +555,7 @@ let currentRoomId = null;
 let onlinePlayers = new Map();
 let lastInputSentAt = 0;
 let localAlive = true;
+let hasInitializedLocalView = false;
 let jumpPending = false;
 let matchFinished = false;
 
@@ -745,14 +749,24 @@ function applyGameState(state) {
   for (const entry of state.players) {
     if (entry.id === localPlayerId) {
       if (onlineGame) {
-        const dx = camera.position.x - entry.position.x;
-        const dy = camera.position.y - entry.position.y;
-        const dz = camera.position.z - entry.position.z;
-        if (dx * dx + dy * dy + dz * dz > 1) {
+        const shouldInitializeView = !hasInitializedLocalView || (!localAlive && entry.alive);
+        if (shouldInitializeView) {
           camera.position.set(entry.position.x, entry.position.y, entry.position.z);
           physics?.setPosition(entry.position);
           player.yaw = entry.yaw;
           player.pitch = entry.pitch;
+          hasInitializedLocalView = true;
+        } else {
+          const dx = camera.position.x - entry.position.x;
+          const dy = camera.position.y - entry.position.y;
+          const dz = camera.position.z - entry.position.z;
+          if (
+            dx * dx + dy * dy + dz * dz
+            > LOCAL_POSITION_RECONCILIATION_DISTANCE_SQUARED
+          ) {
+            camera.position.set(entry.position.x, entry.position.y, entry.position.z);
+            physics?.setPosition(entry.position);
+          }
         }
       }
       continue;
@@ -814,6 +828,7 @@ function returnToLobby() {
   localPlayerId = null;
   currentRoomId = null;
   localAlive = true;
+  hasInitializedLocalView = false;
   matchFinished = false;
   fireHeld = false;
   pressedKeys.clear();
@@ -1097,6 +1112,7 @@ document.addEventListener('lobby:enter-arena', (event) => {
   localPlayerId = event.detail?.playerId ?? null;
   currentRoomId = gameState?.roomId ?? null;
   localAlive = true;
+  hasInitializedLocalView = false;
   matchFinished = false;
   matchResult.hidden = true;
   if (gameState) applyGameState(gameState);
@@ -1110,6 +1126,7 @@ matchReturnButton.addEventListener('click', returnToLobby);
 function enableFallbackControls() {
   fallbackControls = true;
   previousPointerPosition = null;
+  ignoreNextMouseMove = true;
   pressedKeys.clear();
   errorMessage.hidden = true;
   updateControlInterface();
@@ -1171,6 +1188,8 @@ enterButton.addEventListener('click', requestPointerLock);
 
 document.addEventListener('pointerlockchange', () => {
   const isLocked = document.pointerLockElement === canvas;
+  previousPointerPosition = null;
+  ignoreNextMouseMove = true;
   if (isLocked) {
     fallbackControls = false;
     errorMessage.hidden = true;
@@ -1227,6 +1246,11 @@ document.addEventListener('contextmenu', (event) => {
 });
 
 document.addEventListener('mousemove', (event) => {
+  if (ignoreNextMouseMove) {
+    ignoreNextMouseMove = false;
+    return;
+  }
+
   let deltaX = event.movementX;
   let deltaY = event.movementY;
 
@@ -1257,8 +1281,8 @@ document.addEventListener('mousemove', (event) => {
     return;
   }
 
-  player.yaw -= deltaX * mouseSensitivity;
-  player.pitch -= deltaY * mouseSensitivity;
+  player.yaw -= clampLookDelta(deltaX) * mouseSensitivity;
+  player.pitch -= clampLookDelta(deltaY) * mouseSensitivity;
   player.pitch = THREE.MathUtils.clamp(player.pitch, -Math.PI / 2.5, Math.PI / 2.5);
 });
 
