@@ -1,0 +1,87 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#11130f" />
+    <meta
+      name="description"
+      content="Um FPS multiplayer retrô desenvolvido com tecnologias web."
+    />
+    <title>Retro FPS</title>
+  </head>
+  <body>
+    <main class="game-shell">
+      <div class="scene" aria-label="Prévia 3D de uma arena retrô">
+        <canvas id="game-canvas"></canvas>
+      </div>
+      <div class="vignette" aria-hidden="true"></div>
+      <header class="masthead">
+        <p class="eyebrow">PROTOCOLO // ARENA DE TESTE</p>
+        <h1>RETRO <span>FPS</span></h1>
+      </header>
+      <div class="stage-label">
+        <span class="stage-number">05</span>
+        <div>
+          <p class="eyebrow">ARENA // SETOR 03</p>
+          <p class="stage-title">TIRO + MUNIÇÃO</p>
+        </div>
+      </div>
+      <div class="crosshair" aria-hidden="true">
+        <span></span>
+      </div>
+      <section class="weapon-hud" aria-label="Munição do rifle">
+        <p class="weapon-name">SR-09 <span>·</span> RIFLE DE SERVIÇO</p>
+        <p class="ammo-display">
+          <span class="ammo-count">30</span>
+          <span class="ammo-divider">/</span>
+          <span class="reserve-count">90</span>
+        </p>
+        <p class="reload-status" role="status" hidden></p>
+      </section>
+      <section class="combat-hud" aria-label="Estado do combate" hidden>
+        <div class="team-scoreboard">
+          <span class="team-score-inter">INTER <b id="inter-score">0</b></span>
+          <span class="team-score-target">META <b id="kill-target">20</b></span>
+          <span class="team-score-gremio">GRÊMIO <b id="gremio-score">0</b></span>
+        </div>
+        <div class="combat-vitals">
+          <span class="health-label">VIDA</span>
+          <strong id="health-value">100</strong>
+          <div class="health-track"><span id="health-fill"></span></div>
+        </div>
+        <div class="combat-stats">
+          <span>ELIMINAÇÕES <b id="kill-count">0</b></span>
+          <span>MORTES <b id="death-count">0</b></span>
+          <span>JOGADORES <b id="online-count">0</b></span>
+        </div>
+        <ol id="scoreboard" class="scoreboard" aria-label="Ranking da partida"></ol>
+      </section>
+      <p class="combat-notice" id="combat-notice" role="status" hidden></p>
+      <p class="kill-feed" id="kill-feed" role="status" aria-live="polite"></p>
+      <section class="match-result" id="match-result" role="dialog" aria-modal="true" aria-labelledby="match-result-title" hidden>
+        <p class="eyebrow">FIM DE PARTIDA</p>
+        <h2 id="match-result-title">VITÓRIA</h2>
+        <p class="match-result-score" id="match-result-score"></p>
+        <button class="primary-button" id="match-return-button" type="button">VOLTAR À SALA</button>
+      </section>
+      <section class="start-panel" aria-labelledby="start-title" hidden>
+        <p class="eyebrow">OPERAÇÃO DEPÓSITO // TESTE LOCAL</p>
+        <h2 id="start-title">ENTRE NA ARENA</h2>
+        <p>A esquerda · W frente · S trás · D direita</p>
+        <p>Mouse para olhar · Segure clique esquerdo para atirar</p>
+        <p>Espaço para pular <span>·</span> Shift para correr</p>
+        <p>R para recarregar</p>
+        <button id="enter-button" type="button">INICIAR TESTE</button>
+        <button id="return-lobby-button" type="button">VOLTAR AO LOBBY</button>
+        <p class="panel-hint">Pressione ESC para liberar o mouse e pausar.</p>
+      </section>
+      <p class="control-status" role="status" hidden></p>
+      <p class="footer-note">A ESQUERDA <span>·</span> W FRENTE <span>·</span> S TRÁS <span>·</span> D DIREITA <span>·</span> ESPAÇO PULAR</p>
+      <p class="error-message" role="alert" hidden></p>
+      <div id="lobby-root"></div>
+    </main>
+    <script type="module" src="/src/lobby.js"></script>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>
