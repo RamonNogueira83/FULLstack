@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict';
 import { createServer } from 'node:http';
-import { mkdtemp, rm } from 'node:fs/promises';
+import { mkdir, mkdtemp, rm, writeFile } from 'node:fs/promises';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
@@ -27,10 +27,34 @@ async function startTestServer(app) {
 test('player registration, login timestamps, private sessions, and logout', async () => {
   const directory = await mkdtemp(path.join(os.tmpdir(), 'retro-fps-auth-'));
   const databasePath = path.join(directory, 'players.sqlite');
-  const { app, close } = createApp({ databasePath, secureCookies: true });
+  const frontendDistPath = path.join(directory, 'dist');
+  await mkdir(path.join(frontendDistPath, 'assets'), { recursive: true });
+  await writeFile(path.join(frontendDistPath, 'index.html'), '<main>Retro FPS test app</main>');
+  await writeFile(path.join(frontendDistPath, 'assets', 'app.js'), 'console.log("test");');
+  const { app, close } = createApp({
+    databasePath,
+    secureCookies: true,
+    serveFrontend: true,
+    frontendDistPath,
+  });
   const server = await startTestServer(app);
 
   try {
+    const frontend = await fetch(server.baseUrl);
+    assert.equal(frontend.status, 200);
+    assert.match(await frontend.text(), /Retro FPS test app/);
+
+    const frontendAsset = await fetch(`${server.baseUrl}/assets/app.js`);
+    assert.equal(frontendAsset.status, 200);
+    assert.equal(await frontendAsset.text(), 'console.log("test");');
+
+    const frontendRoute = await fetch(`${server.baseUrl}/lobby/room-123`);
+    assert.equal(frontendRoute.status, 200);
+    assert.match(await frontendRoute.text(), /Retro FPS test app/);
+
+    const unknownApi = await fetch(`${server.baseUrl}/api/unknown`);
+    assert.equal(unknownApi.status, 404);
+
     const health = await fetch(`${server.baseUrl}/api/health`);
     assert.deepEqual(await health.json(), {
       status: 'ok',

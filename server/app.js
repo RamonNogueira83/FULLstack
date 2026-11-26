@@ -13,6 +13,7 @@ const MIN_NICKNAME_LENGTH = 3;
 const MAX_PASSWORD_LENGTH = 128;
 const MIN_PASSWORD_LENGTH = 12;
 const DEFAULT_DATABASE_PATH = fileURLToPath(new URL('../data/players.sqlite', import.meta.url));
+const DEFAULT_FRONTEND_DIST_PATH = fileURLToPath(new URL('../dist/', import.meta.url));
 
 function hashToken(token) {
   return createHash('sha256').update(token).digest('hex');
@@ -98,6 +99,8 @@ function validateRegistration(body) {
 export function createApp({
   databasePath = process.env.DATABASE_PATH ?? DEFAULT_DATABASE_PATH,
   secureCookies = process.env.NODE_ENV === 'production',
+  serveFrontend = process.env.NODE_ENV === 'production',
+  frontendDistPath = DEFAULT_FRONTEND_DIST_PATH,
 } = {}) {
   const store = createPlayerStore(path.resolve(databasePath));
   const app = express();
@@ -211,6 +214,27 @@ export function createApp({
     }));
     response.status(204).end();
   });
+
+  if (serveFrontend) {
+    app.use(express.static(frontendDistPath, { index: false }));
+    app.get(/.*/, (request, response, next) => {
+      if (
+        request.path === '/api'
+        || request.path.startsWith('/api/')
+        || request.path === '/socket.io'
+        || request.path.startsWith('/socket.io/')
+        || path.extname(request.path)
+        || !request.accepts('html')
+      ) {
+        next();
+        return;
+      }
+
+      response.sendFile(path.join(frontendDistPath, 'index.html'), (error) => {
+        if (error) next(error);
+      });
+    });
+  }
 
   app.use((error, _request, response, _next) => {
     if (response.headersSent) {

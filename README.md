@@ -160,6 +160,34 @@ e `npm run dev:server`. O frontend usa `PORT` para localizar o backend
 (padrão: 3001). No modo combinado, `PORT` seleciona a porta preferida do
 backend e `VITE_PORT` seleciona a porta preferida do Vite.
 
+## Deploy no Render
+
+O repositório inclui [render.yaml](./render.yaml) para publicar o frontend e o
+backend juntos como um único serviço Node.js. O Express serve os arquivos
+gerados pelo Vite e o mesmo servidor atende a API e o Socket.IO. O servidor usa
+a porta `PORT` fornecida pelo Render e escuta em `0.0.0.0`.
+
+1. Envie o projeto para um repositório GitHub.
+2. No Render, escolha **New → Blueprint** e conecte esse repositório.
+3. Revise o serviço `retro-fps` detectado pelo `render.yaml` e confirme o deploy.
+4. Quando o deploy terminar, abra o endereço `.onrender.com` exibido no painel.
+   O health check `/api/health` deve informar `status: "ok"`.
+
+O Blueprint executa `npm ci && npm run build` e inicia o servidor com
+`npm start`. Os requisitos de versão do Node estão declarados em `package.json`.
+Se preferir criar um Web Service manualmente, use os mesmos comandos de build e
+start e configure `NODE_ENV=production`.
+
+**Limitações importantes do plano gratuito:** o serviço pode suspender após
+inatividade e levar algum tempo para responder novamente. O SQLite fica no
+sistema de arquivos efêmero do serviço; contas e sessões podem ser perdidas
+quando o serviço reinicia, suspende ou recebe um novo deploy. As salas e
+partidas também são mantidas somente na memória e reiniciam junto com o
+servidor. Use este deploy para demonstração/testes, não como armazenamento
+permanente de contas. Antes de abrir o jogo ao público ou armazenar dados reais,
+migre as contas para um banco persistente e planeje como manter salas e estado
+multiplayer disponíveis durante reinícios.
+
 ### Solução de problemas
 
 - **`node` ou `npm` não é reconhecido:** instale/atualize o Node.js e abra um
